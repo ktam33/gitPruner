@@ -13,7 +13,7 @@ func main() {
 	path := os.Args[1]
 	os.Chdir(path)
 
-	Info("\nSyncing branches with remote...[git fetch -p]")
+	info("\nSyncing branches with remote...[git fetch -p]")
 
 	out, err := exec.Command("git", "fetch", "-p").CombinedOutput()
 	if err != nil {
@@ -22,7 +22,7 @@ func main() {
 		fmt.Println(string(out))
 	}
 
-	Info("\nGetting information about local branches...[git branch -vv]")
+	info("\nGetting information about local branches...[git branch -vv]")
 	out, err = exec.Command("git", "branch", "-vv").CombinedOutput()
 	checkError(err)
 	branchInfo := string(out)
@@ -39,18 +39,19 @@ func main() {
 		if isMatch {
 			foundBranchToDelete = true
 			branchName := re.FindStringSubmatch(line)[1]
-			Info("\nBranch \"%s\" is no longer a remote branch. Delete? (y or n)\n", branchName)
-			input, _, err := reader.ReadRune()
+			info("\nBranch \"%s\" is no longer a remote branch. Delete? (y or n)", branchName)
+			input, err := reader.ReadString('\n')
 			checkError(err)
-			if input == 'y' || input == 'Y' {
-				Info("Deleting branch...[git branch -d %s]", branchName)
+			input = strings.ToLower(input)
+			if input[0] == 'y' {
+				info("Deleting branch...[git branch -d %s]", branchName)
 				out, err = exec.Command("git", "branch", "-d", branchName).CombinedOutput()
 				fmt.Println(string(out))
 			}
 		}
 	}
 	if !foundBranchToDelete {
-		Info("No local branches to prune were found")
+		info("No local branches to prune were found")
 	}
 }
 
@@ -62,6 +63,6 @@ func checkError(err error) {
 	os.Exit(1)
 }
 
-func Info(format string, args ...interface{}) {
+func info(format string, args ...interface{}) {
 	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
 }
