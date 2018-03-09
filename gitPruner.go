@@ -39,19 +39,33 @@ func main() {
 		if isMatch {
 			// skip checked out branch
 			if line[0] == '*' {
-				Info("Branch \"%s\" is no longer a remote branch. Skipping since it is checked out.")
+				info("Branch \"%s\" is no longer a remote branch. Skipping since it is checked out.")
 				break
 			}
 			foundBranchToDelete = true
 			branchName := re.FindStringSubmatch(line)[1]
-			info("\nBranch \"%s\" is no longer a remote branch. Delete? (y or n)", branchName)
+			info("Branch \"%s\" is no longer a remote branch. Delete? (y or n)", branchName)
 			input, err := reader.ReadString('\n')
 			checkError(err)
 			input = strings.ToLower(input)
 			if input[0] == 'y' {
 				info("Deleting branch...[git branch -d %s]", branchName)
 				out, err = exec.Command("git", "branch", "-d", branchName).CombinedOutput()
+				isMatch, err = regexp.MatchString("error: The branch '.+' is not fully merged\\.", string(out))
+				checkError(err)
 				fmt.Println(string(out))
+				if isMatch {
+					info("Force delete branch \"%s\"? (y or n)", branchName)
+					input, err := reader.ReadString('\n')
+					checkError(err)
+					input = strings.ToLower(input)
+					if input[0] == 'y' {
+						info("Force deleting branch...[git branch -D %s]", branchName)
+						out, err = exec.Command("git", "branch", "-D", branchName).CombinedOutput()
+						checkError(err)
+						fmt.Println(string(out))
+					}
+				}
 			}
 		}
 	}
