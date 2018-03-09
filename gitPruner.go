@@ -37,9 +37,14 @@ func main() {
 		isMatch, err := regexp.MatchString("\\[.+: gone\\]", line)
 		checkError(err)
 		if isMatch {
+			// skip checked out branch
+			if line[0] == '*' {
+				Info("Branch \"%s\" is no longer a remote branch. Skipping since it is checked out.")
+				break
+			}
 			foundBranchToDelete = true
 			branchName := re.FindStringSubmatch(line)[1]
-			Info("\nBranch \"%s\" is no longer a remote branch. Delete? (y or n)\n", branchName)
+			Info("Branch \"%s\" is no longer a remote branch. Delete? (y or n)", branchName)
 			input, _, err := reader.ReadRune()
 			checkError(err)
 			if input == 'y' || input == 'Y' {
