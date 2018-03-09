@@ -13,22 +13,10 @@ func main() {
 	path := os.Args[1]
 	os.Chdir(path)
 
-	info("\nSyncing branches with remote...[git fetch -p]")
+	syncBranches()
 
-	out, err := exec.Command("git", "fetch", "-p").CombinedOutput()
-	if err != nil {
-		fmt.Println("Unable to reach remote. Skipping sync step.\n")
-	} else {
-		fmt.Println(string(out))
-	}
+	lines := getLocalBranches()
 
-	info("\nGetting information about local branches...[git branch -vv]")
-	out, err = exec.Command("git", "branch", "-vv").CombinedOutput()
-	checkError(err)
-	branchInfo := string(out)
-	fmt.Println(branchInfo)
-
-	lines := strings.Split(branchInfo, "\n")
 	re := regexp.MustCompile("\\s([^\\s]+?)\\s")
 
 	reader := bufio.NewReader(os.Stdin)
@@ -37,7 +25,7 @@ func main() {
 		isMatch, err := regexp.MatchString("\\[.+: gone\\]", line)
 		checkError(err)
 		if isMatch {
-			// skip checked out branch
+			// skip the currently checked out branch
 			branchName := re.FindStringSubmatch(line)[1]
 			if line[0] == '*' {
 				info("Branch \"%s\" is no longer a remote branch but skipping since it is checked out.", branchName)
@@ -49,28 +37,54 @@ func main() {
 			checkError(err)
 			input = strings.ToLower(input)
 			if input[0] == 'y' {
-				info("Deleting branch...[git branch -d %s]", branchName)
-				out, err = exec.Command("git", "branch", "-d", branchName).CombinedOutput()
-				isMatch, err = regexp.MatchString("error: The branch '.+' is not fully merged\\.", string(out))
-				checkError(err)
-				fmt.Println(string(out))
-				if isMatch {
-					info("Force delete branch \"%s\"? (y or n)", branchName)
-					input, err := reader.ReadString('\n')
-					checkError(err)
-					input = strings.ToLower(input)
-					if input[0] == 'y' {
-						info("Force deleting branch...[git branch -D %s]", branchName)
-						out, err = exec.Command("git", "branch", "-D", branchName).CombinedOutput()
-						checkError(err)
-						fmt.Println(string(out))
-					}
-				}
+				deleteBranch(branchName, reader)
 			}
 		}
 	}
 	if !foundBranchToDelete {
 		info("No local branches to prune were found")
+	}
+}
+
+func syncBranches() {
+	info("\nSyncing branches with remote...[git fetch -p]")
+	out, err := exec.Command("git", "fetch", "-p").CombinedOutput()
+	if err != nil {
+		fmt.Println("Unable to reach remote. Skipping sync step.\n")
+	} else {
+		fmt.Println(string(out))
+	}
+}
+
+func getLocalBranches() []string {
+	info("\nGetting information about local branches...[git branch -vv]")
+	out, err := exec.Command("git", "branch", "-vv").CombinedOutput()
+	checkError(err)
+	branchInfo := string(out)
+	fmt.Println(branchInfo)
+	return strings.Split(branchInfo, "\n")
+}
+
+func deleteBranch(branchName string, reader *bufio.Reader) {
+	info("Deleting branch...[git branch -d %s]", branchName)
+	out, err := exec.Command("git", "branch", "-d", branchName).CombinedOutput()
+	checkError(err)
+	outText := string(out)
+	fmt.Println(outText)
+	isMatch, err := regexp.MatchString("error: The branch '.+' is not fully merged\\.", outText)
+	checkError(err)
+
+	if isMatch {
+		info("Force delete branch \"%s\"? (y or n)", branchName)
+		input, err := reader.ReadString('\n')
+		checkError(err)
+		input = strings.ToLower(input)
+		if input[0] == 'y' {
+			info("Force deleting branch...[git branch -D %s]", branchName)
+			out, err = exec.Command("git", "branch", "-D", branchName).CombinedOutput()
+			checkError(err)
+			fmt.Println(string(out))
+		}
 	}
 }
 
