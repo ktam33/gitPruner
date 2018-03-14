@@ -57,7 +57,7 @@ func syncBranches() {
 }
 
 func getLocalBranches() []string {
-	info("\nGetting information about local branches...[git branch -vv]")
+	info("Getting information about local branches...[git branch -vv]")
 	out, err := exec.Command("git", "branch", "-vv").CombinedOutput()
 	checkError(err)
 	branchInfo := string(out)
