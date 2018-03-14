@@ -68,7 +68,6 @@ func getLocalBranches() []string {
 func deleteBranch(branchName string, reader *bufio.Reader) {
 	info("Deleting branch...[git branch -d %s]", branchName)
 	out, err := exec.Command("git", "branch", "-d", branchName).CombinedOutput()
-	checkError(err)
 	outText := string(out)
 	fmt.Println(outText)
 	isMatch, err := regexp.MatchString("error: The branch '.+' is not fully merged\\.", outText)
